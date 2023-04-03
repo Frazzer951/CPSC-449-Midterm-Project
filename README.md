@@ -12,7 +12,9 @@
   - [ ] 404
   - [ ] 500
 - [ ] Authentication
-  - [ ] Use JWT to implement Login functionality
+  - [x] Register new accounts
+  - [x] Login to account and get JWT back
+  - [ ] Have a function require authentication
 - [ ] File Handeling
   - [ ] Upload file with authenticated user
   - [ ] File Validation
