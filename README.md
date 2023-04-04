@@ -6,11 +6,11 @@
 
 ## TODOs
 
-- [ ] Error Handeling
-  - [ ] 400
-  - [ ] 401
-  - [ ] 404
-  - [ ] 500
+- [x] Error Handeling
+  - [x] 400
+  - [x] 401
+  - [x] 404
+  - [x] 500
 - [ ] Authentication
   - [x] Register new accounts
   - [x] Login to account and get JWT back
