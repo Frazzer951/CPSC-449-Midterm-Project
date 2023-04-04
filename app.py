@@ -128,5 +128,20 @@ def register():
     )
 
 
+# Get user public data
+@app.route("/users", methods=["GET"])
+def get_users():
+    limit = request.args.get("limit")
+
+    if limit:
+        cur.execute("SELECT public_id, username FROM users LIMIT %s", (int(limit),))
+    else:
+        cur.execute("SELECT public_id, username FROM users")
+
+    users = cur.fetchall()
+
+    return make_response(jsonify(users), 200)
+
+
 if __name__ == "__main__":
     app.run(host="localhost", port=int("5000"))

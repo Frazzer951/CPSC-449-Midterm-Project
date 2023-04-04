@@ -20,7 +20,7 @@
   - [ ] File Validation
   - [ ] Fize size validation
   - [ ] Store uploaded files
-- [ ] Public route that allows access to public info
+- [x] Public route that allows access to public info
   - Does not requier authentication
 
 ## How to run
