@@ -4,6 +4,8 @@
 
 - Luke Eltiste
 
+- William Lim
+
 ## TODOs
 
 - [x] Error Handeling
