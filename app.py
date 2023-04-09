@@ -1,3 +1,5 @@
+import hashlib
+import os
 import re
 import uuid
 from datetime import datetime, timedelta
@@ -10,22 +12,27 @@ from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.secret_key = "very_secret_key"
+app.config['UPLOAD_FOLDER'] = "Uploads"
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 
 load_dotenv()
-
+SQL_CONFIG = {
+    "host":getenv("DB_HOST"),
+    "user":getenv("DB_USER"),
+    "password":getenv("DB_PASS"),
+    "db":getenv("DB_NAME"),
+    "cursorclass":pymysql.cursors.DictCursor,
+}
 # To connect MySQL database
 conn = pymysql.connect(
-    host=getenv("DB_HOST"),
-    user=getenv("DB_USER"),
-    password=getenv("DB_PASS"),
-    db=getenv("DB_NAME"),
-    cursorclass=pymysql.cursors.DictCursor,
+    **SQL_CONFIG
 )
 cur = conn.cursor()
 
@@ -54,6 +61,24 @@ def internal_server_error(e):
 def root():
     return "Hello World"
 
+
+### AUTH DECORATOR
+
+def verify_token(func):
+    def wrapper(*args, **kwargs):
+        token = request.headers.get("token")
+        if not token:
+            return {"message":"Token is missing."}, 403
+        try:
+            kwargs["_jwt_data"] = jwt.decode(token, app.secret_key, algorithms=['HS256'])
+            return func(*args, **kwargs)
+        except:
+            return {"message": "Token is not valid."}, 403
+
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+### END AUTH DECORATOR
 
 # Login to the application
 @app.route("/login", methods=["POST"])
@@ -141,6 +166,35 @@ def get_users():
     users = cur.fetchall()
 
     return make_response(jsonify(users), 200)
+
+
+@app.route("/upload", methods=["GET", "POST"])
+@verify_token
+def upload_file(_jwt_data):
+    cur.execute("SELECT `username` FROM users WHERE `public_id` = %s", (_jwt_data["public_id"],))
+    acct = cur.fetchone()
+    if "file" not in request.files:
+        return {"message":"No file uploaded."}
+    file = request.files["file"]
+    if file.filename == "":
+        return {"message":"No file selected."}
+    
+    filename = secure_filename(file.filename)
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    return {
+        "user": acct["username"],
+        "message":"Success."
+    }
+
+@app.route("/profile", methods=["GET", "POST"])
+@verify_token
+def get_profile(_jwt_data):
+    cur.execute("SELECT `username` FROM users WHERE `public_id` = %s", (_jwt_data["public_id"],))
+    acct = cur.fetchone()
+    return {
+        "user": acct["username"],
+        "message":"Success."
+    }
 
 
 if __name__ == "__main__":

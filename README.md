@@ -13,15 +13,15 @@
   - [x] 401
   - [x] 404
   - [x] 500
-- [ ] Authentication
+- [x] Authentication
   - [x] Register new accounts
   - [x] Login to account and get JWT back
-  - [ ] Have a function require authentication
-- [ ] File Handeling
-  - [ ] Upload file with authenticated user
-  - [ ] File Validation
-  - [ ] Fize size validation
-  - [ ] Store uploaded files
+  - [x] Have a function require authentication
+- [x] File Handeling
+  - [x] Upload file with authenticated user
+  - [x] File Validation
+  - [x] Fize size validation
+  - [x] Store uploaded files
 - [x] Public route that allows access to public info
   - Does not requier authentication
 
