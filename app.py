@@ -18,7 +18,11 @@ app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.secret_key = "very_secret_key"
+
+# set the upload folder
 app.config['UPLOAD_FOLDER'] = "Uploads"
+
+# set the max content length
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 
@@ -167,28 +171,39 @@ def get_users():
 
     return make_response(jsonify(users), 200)
 
-
+#upload a file
 @app.route("/upload", methods=["GET", "POST"])
 @verify_token
 def upload_file(_jwt_data):
+    #get username based on token
     cur.execute("SELECT `username` FROM users WHERE `public_id` = %s", (_jwt_data["public_id"],))
     acct = cur.fetchone()
+    
+    # check if the file is in the request
     if "file" not in request.files:
         return {"message":"No file uploaded."}
+    
+    #get the file from the request
     file = request.files["file"]
+
+    #check if file name blank
     if file.filename == "":
         return {"message":"No file selected."}
     
+    #Check filename and save to ./Uploads folder
     filename = secure_filename(file.filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    
     return {
         "user": acct["username"],
-        "message":"Success."
+        "message":"Successfully uploaded file."
     }
 
+# This route requires a verified token.
 @app.route("/profile", methods=["GET", "POST"])
 @verify_token
 def get_profile(_jwt_data):
+    #get username from token
     cur.execute("SELECT `username` FROM users WHERE `public_id` = %s", (_jwt_data["public_id"],))
     acct = cur.fetchone()
     return {
