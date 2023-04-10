@@ -1,15 +1,11 @@
-import hashlib
 import os
-import re
-import uuid
 from datetime import datetime, timedelta
-from functools import wraps
 from os import getenv
 
 import jwt
 import pymysql
 from dotenv import load_dotenv
-from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -20,24 +16,22 @@ cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.secret_key = "very_secret_key"
 
 # set the upload folder
-app.config['UPLOAD_FOLDER'] = "Uploads"
+app.config["UPLOAD_FOLDER"] = "Uploads"
 
 # set the max content length
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
 
 load_dotenv()
 SQL_CONFIG = {
-    "host":getenv("DB_HOST"),
-    "user":getenv("DB_USER"),
-    "password":getenv("DB_PASS"),
-    "db":getenv("DB_NAME"),
-    "cursorclass":pymysql.cursors.DictCursor,
+    "host": getenv("DB_HOST"),
+    "user": getenv("DB_USER"),
+    "password": getenv("DB_PASS"),
+    "db": getenv("DB_NAME"),
+    "cursorclass": pymysql.cursors.DictCursor,
 }
 # To connect MySQL database
-conn = pymysql.connect(
-    **SQL_CONFIG
-)
+conn = pymysql.connect(**SQL_CONFIG)
 cur = conn.cursor()
 
 
@@ -72,9 +66,9 @@ def verify_token(func):
     def wrapper(*args, **kwargs):
         token = request.headers.get("token")
         if not token:
-            return {"message":"Token is missing."}, 403
+            return {"message": "Token is missing."}, 403
         try:
-            kwargs["_jwt_data"] = jwt.decode(token, app.secret_key, algorithms=['HS256'])
+            kwargs["_jwt_data"] = jwt.decode(token, app.secret_key, algorithms=["HS256"])
             return func(*args, **kwargs)
         except:
             return {"message": "Token is not valid."}, 403
@@ -83,6 +77,7 @@ def verify_token(func):
     return wrapper
 
 ### END AUTH DECORATOR
+
 
 # Login to the application
 @app.route("/login", methods=["POST"])
@@ -99,6 +94,7 @@ def login():
             401,
         )
 
+    # check if user exists in the database
     cur.execute("SELECT * FROM users WHERE username = % s", (username,))
     user = cur.fetchone()
 
@@ -108,6 +104,7 @@ def login():
             401,
         )
 
+    # check if password is correct
     if check_password_hash(user["password"], password):
         token = jwt.encode({"public_id": user["public_id"], "exp": datetime.utcnow() + timedelta(minutes=30)}, app.secret_key)
         return make_response(jsonify({"token": token}), 200)
@@ -133,6 +130,7 @@ def register():
             400,
         )
 
+    # check if user already exists
     cur.execute("SELECT * FROM users WHERE username = % s", (username,))
     user = cur.fetchone()
 
@@ -142,6 +140,7 @@ def register():
             401,
         )
 
+    # create new user
     cur.execute(
         "INSERT INTO users (username, password) VALUES (% s, % s)",
         (
@@ -171,45 +170,41 @@ def get_users():
 
     return make_response(jsonify(users), 200)
 
-#upload a file
+
+# upload a file
 @app.route("/upload", methods=["GET", "POST"])
 @verify_token
 def upload_file(_jwt_data):
-    #get username based on token
+    # get username based on token
     cur.execute("SELECT `username` FROM users WHERE `public_id` = %s", (_jwt_data["public_id"],))
     acct = cur.fetchone()
-    
+
     # check if the file is in the request
     if "file" not in request.files:
-        return {"message":"No file uploaded."}
-    
-    #get the file from the request
+        return {"message": "No file uploaded."}
+
+    # get the file from the request
     file = request.files["file"]
 
-    #check if file name blank
+    # check if file name blank
     if file.filename == "":
-        return {"message":"No file selected."}
-    
-    #Check filename and save to ./Uploads folder
+        return {"message": "No file selected."}
+
+    # Check filename and save to ./Uploads folder
     filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    
-    return {
-        "user": acct["username"],
-        "message":"Successfully uploaded file."
-    }
+    file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+    return {"user": acct["username"], "message": "Successfully uploaded file."}
+
 
 # This route requires a verified token.
 @app.route("/profile", methods=["GET", "POST"])
 @verify_token
 def get_profile(_jwt_data):
-    #get username from token
+    # get username from token
     cur.execute("SELECT `username` FROM users WHERE `public_id` = %s", (_jwt_data["public_id"],))
     acct = cur.fetchone()
-    return {
-        "user": acct["username"],
-        "message":"Success."
-    }
+    return {"user": acct["username"], "message": "Success."}
 
 
 if __name__ == "__main__":
